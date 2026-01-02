@@ -124,6 +124,7 @@ h1{font-size:26px;font-weight:700;color:#fff;margin-bottom:6px;}
     gap:12px;
     box-shadow:0 18px 45px rgba(250,204,21,0.65);
     animation:fastZoom 0.8s ease-in-out infinite;
+    transition:opacity 0.3s ease;
 }
 @keyframes fastZoom{
     0%{transform:scale(1);}
@@ -162,6 +163,9 @@ s.parentNode.insertBefore(t,s)}(window, document,'script',
 
 fbq('init', '903523175468124');
 fbq('track', 'PageView');
+
+// FIXED: Track subscribe ONLY ONCE per unique user across sessions
+let hasTrackedSubscribe = localStorage.getItem('telegram_subscribe_tracked') === 'true';
 
 </script>
 <noscript>
@@ -222,29 +226,40 @@ for(let i=0;i<35;i++){
 
 </div>
 
-<!-- ================= SINGLE SUBSCRIBE EVENT (100% SAFE) ================= -->
+<!-- ================= FIXED SUBSCRIBE TRACKING (1 CLICK = 1 TRACK FOREVER) ================= -->
 <script>
 const telegramBtn = document.getElementById("telegramBtn");
+const fbq = window.fbq;
 
-// Disable if already subscribed in this session
-if(sessionStorage.getItem("telegram_subscribed")==="yes"){
+// Check both session & localStorage - disable button if already joined in session
+if(sessionStorage.getItem("telegram_subscribed") === "yes"){
     telegramBtn.disabled = true;
 }
 
 telegramBtn.addEventListener("click", function(){
+    // Skip if already tracked/subscribed
+    if(hasTrackedSubscribe || sessionStorage.getItem("telegram_subscribed") === "yes") {
+        return;
+    }
 
-    if(sessionStorage.getItem("telegram_subscribed")==="yes") return;
-
-    sessionStorage.setItem("telegram_subscribed","yes");
+    // Mark as subscribed in session (prevents multiple clicks in same session)
+    sessionStorage.setItem("telegram_subscribed", "yes");
     telegramBtn.disabled = true;
 
-    // META EVENTS (ONLY ONCE)
-    fbq('track','Subscribe');              // Standard Event
-    fbq('trackCustom','TelegramSubscribe'); // Custom (optional)
+    // TRACK META EVENTS ONLY ONCE PER USER (using localStorage)
+    if (!hasTrackedSubscribe) {
+        fbq('track', 'Subscribe');                    // Standard Event
+        fbq('trackCustom', 'TelegramSubscribe');      // Custom Event
+        
+        // Mark as tracked PERMANENTLY in localStorage
+        localStorage.setItem('telegram_subscribe_tracked', 'true');
+        hasTrackedSubscribe = true;
+    }
 
-    setTimeout(()=>{
-        window.location.href="https://t.me/+kV_Rlq94pPhiYWZl";
-    },250);
+    // Redirect after short delay
+    setTimeout(() => {
+        window.location.href = "https://t.me/+kV_Rlq94pPhiYWZl";
+    }, 250);
 });
 </script>
 <!-- ================= END ================= -->
